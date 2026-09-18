@@ -1,0 +1,606 @@
+{
+  "taxonomy": [
+    "otp-disclosure",
+    "idor",
+    "sensitive-data-exposure",
+    "race-condition",
+    "unauthenticated-access",
+    "broken-access-control",
+    "legacy-bypass",
+    "mfa-bypass",
+    "business-logic-flaw",
+    "ssrf",
+    "source-code-disclosure",
+    "unrestricted-upload",
+    "user-enumeration",
+    "xml-rpc-abuse",
+    "weak-credentials",
+    "open-proxy",
+    "no-rate-limit",
+    "weak-password-policy",
+    "sql-injection"
+  ],
+  "owasp_categories": [
+    {
+      "id": "A01:2021",
+      "name": "Broken Access Control",
+      "framework": "web"
+    },
+    {
+      "id": "A02:2021",
+      "name": "Cryptographic Failures",
+      "framework": "web"
+    },
+    {
+      "id": "A03:2021",
+      "name": "Injection",
+      "framework": "web"
+    },
+    {
+      "id": "A04:2021",
+      "name": "Insecure Design",
+      "framework": "web"
+    },
+    {
+      "id": "A05:2021",
+      "name": "Security Misconfiguration",
+      "framework": "web"
+    },
+    {
+      "id": "A06:2021",
+      "name": "Vulnerable and Outdated Components",
+      "framework": "web"
+    },
+    {
+      "id": "A07:2021",
+      "name": "Identification and Authentication Failures",
+      "framework": "web"
+    },
+    {
+      "id": "A08:2021",
+      "name": "Software and Data Integrity Failures",
+      "framework": "web"
+    },
+    {
+      "id": "A09:2021",
+      "name": "Security Logging and Monitoring Failures",
+      "framework": "web"
+    },
+    {
+      "id": "A10:2021",
+      "name": "Server-Side Request Forgery",
+      "framework": "web"
+    },
+    {
+      "id": "API1:2023",
+      "name": "Broken Object Level Authorization",
+      "framework": "api"
+    },
+    {
+      "id": "API2:2023",
+      "name": "Broken Authentication",
+      "framework": "api"
+    },
+    {
+      "id": "API3:2023",
+      "name": "Broken Object Property Level Authorization",
+      "framework": "api"
+    },
+    {
+      "id": "API4:2023",
+      "name": "Unrestricted Resource Consumption",
+      "framework": "api"
+    },
+    {
+      "id": "API5:2023",
+      "name": "Broken Function Level Authorization",
+      "framework": "api"
+    },
+    {
+      "id": "API6:2023",
+      "name": "Unrestricted Access to Sensitive Business Flows",
+      "framework": "api"
+    },
+    {
+      "id": "API7:2023",
+      "name": "Server Side Request Forgery",
+      "framework": "api"
+    },
+    {
+      "id": "API8:2023",
+      "name": "Security Misconfiguration",
+      "framework": "api"
+    },
+    {
+      "id": "API9:2023",
+      "name": "Improper Inventory Management",
+      "framework": "api"
+    },
+    {
+      "id": "API10:2023",
+      "name": "Unsafe Consumption of APIs",
+      "framework": "api"
+    }
+  ],
+  "findings": [
+    {
+      "id": "LAB-01",
+      "title": "OTP disclosure in registration response",
+      "severity": "high",
+      "description": "POST /api/auth/register returns the plaintext registration OTP directly in the JSON response body instead of only delivering it out-of-band.",
+      "impact": "An attacker can read the one-time password from the response and complete phone-number verification for any number they submit, defeating the SMS verification step.",
+      "remediation": "Never return the OTP in the API response; deliver it only via the out-of-band channel and validate it server-side.",
+      "method": "POST",
+      "endpoint": "/api/auth/register",
+      "port": 443,
+      "vuln_type": "otp-disclosure",
+      "owasp": [
+        "A07:2021",
+        "API2:2023"
+      ],
+      "proof": "otp-in-response",
+      "poc": "1. POST /api/auth/register with a new phoneNumber, ktpNumber, fullName, dateOfBirth, selfiePath.\n2. The JSON response includes the plaintext OTP in data.otp — no need to check email/SMS.\n3. Use that OTP directly in /api/auth/verify-registration to complete registration."
+    },
+    {
+      "id": "LAB-02",
+      "title": "OTP disclosure in device-enrollment response",
+      "severity": "medium",
+      "description": "POST /api/auth/enroll-device returns the device-enrollment OTP in the plaintext response body, exposing the verification code to the caller.",
+      "impact": "An attacker can read the OTP and verify a device-enrollment step they did not legitimately own, bypassing device binding.",
+      "remediation": "Return the OTP only via the out-of-band channel; never echo it in the API response.",
+      "method": "POST",
+      "endpoint": "/api/auth/enroll-device",
+      "port": 443,
+      "vuln_type": "otp-disclosure",
+      "owasp": [
+        "A07:2021",
+        "API2:2023"
+      ],
+      "proof": "otp-in-response",
+      "poc": "1. Log in and POST /api/auth/enroll-device with phoneNumber, password, deviceId, deviceName.\n2. The response body returns the device-enrollment OTP in data.otp.\n3. Submit it to /api/auth/verify-device-enrollment to bind a device you control."
+    },
+    {
+      "id": "LAB-03",
+      "title": "Cross-customer transaction search (IDOR)",
+      "severity": "high",
+      "description": "GET /api/transactions/search returns transaction rows for any requested account_number without verifying the authenticated user owns that account.",
+      "impact": "An attacker can enumerate account numbers and read any customer's full transaction history, exposing balances, counterparties and descriptions.",
+      "remediation": "Scope search results to the authenticated customer server-side and verify account ownership before returning rows.",
+      "method": "GET",
+      "endpoint": "/api/transactions/search",
+      "port": 443,
+      "vuln_type": "idor",
+      "owasp": [
+        "A01:2021",
+        "API1:2023"
+      ],
+      "proof": "cross-customer-row",
+      "poc": "1. GET /api/transactions/search?account_number=<a victim account number> without ownership checks.\n2. The response reveals another customer's account/transaction data.\n3. Enumerate account numbers (ACC... pattern) to sweep the bank's customers."
+    },
+    {
+      "id": "LAB-04",
+      "title": "Password/PIN hashes in profile response",
+      "severity": "medium",
+      "description": "GET /api/auth/profile returns the customer's password and PIN values (SHA1) in the response body with no masking or one-way transform.",
+      "impact": "Anyone able to read a profile — including via the search IDOR — obtains password/PIN hashes that can be cracked offline and reused.",
+      "remediation": "Return only non-sensitive profile fields and remove password/PIN hashes from the API response.",
+      "method": "GET",
+      "endpoint": "/api/auth/profile",
+      "port": 443,
+      "vuln_type": "sensitive-data-exposure",
+      "owasp": [
+        "A02:2021",
+        "API3:2023"
+      ],
+      "proof": "password-pin-hashes",
+      "poc": "1. Authenticate and GET /api/auth/profile.\n2. The response includes data.password and data.pin as SHA1 hashes.\n3. Crack the hashes offline (hashcat/john) or compare against a known hash to recover plaintext credentials."
+    },
+    {
+      "id": "LAB-05",
+      "title": "Transfer race condition (double spend)",
+      "severity": "critical",
+      "description": "POST /api/transactions/transfer is a TOCTOU race: concurrent transfers against the same account are not serialized, so a balance check followed by a debit can be raced.",
+      "impact": "An attacker can transfer more money than an account holds by racing requests, draining balances and corrupting the ledger (double-spend description is observable).",
+      "remediation": "Enforce an atomic balance check-and-debit (row locking / transaction isolation) and reject overlapping transfers for the same account.",
+      "method": "POST",
+      "endpoint": "/api/transactions/transfer",
+      "port": 443,
+      "vuln_type": "race-condition",
+      "owasp": [
+        "A04:2021",
+        "API6:2023"
+      ],
+      "proof": "double-spend-description",
+      "poc": "1. POST /api/transactions/transfer twice, concurrently, from the same funded account to two different destinations.\n2. There is no row lock on the balance check, so both transfers may pass and the balance can go negative (double spend).\n3. Verify both destination accounts received funds despite the source balance being insufficient."
+    },
+    {
+      "id": "LAB-06",
+      "title": "Unauthenticated account inquiry",
+      "severity": "high",
+      "description": "GET /api/auth/inquiry/{accountNumber} answers for any account with no authentication required at all.",
+      "impact": "An unauthenticated attacker can enumerate account numbers and retrieve account/customer data for any account, including the flagholder's.",
+      "remediation": "Require authentication and authorization before serving account inquiry data.",
+      "method": "GET",
+      "endpoint": "/api/auth/inquiry/{accountNumber}",
+      "port": 443,
+      "vuln_type": "unauthenticated-access",
+      "owasp": [
+        "A01:2021",
+        "API2:2023"
+      ],
+      "proof": "flagholder-account",
+      "poc": "1. GET /api/auth/inquiry/{accountNumber} with no Authorization header.\n2. The endpoint returns full customer PII (name, KTP, phone, account) unauthenticated.\n3. Enumerate account numbers to harvest every customer's personal data."
+    },
+    {
+      "id": "LAB-07",
+      "title": "Withdraw from any account (no ownership check)",
+      "severity": "high",
+      "description": "POST /api/transactions/withdraw accepts any account_number and never verifies it belongs to the authenticated customer; the pin field is accepted but not validated server-side.",
+      "impact": "Any authenticated user can withdraw funds from any account in the system.",
+      "remediation": "Verify the target account belongs to the session's customer and enforce PIN validation server-side.",
+      "method": "POST",
+      "endpoint": "/api/transactions/withdraw",
+      "port": 443,
+      "vuln_type": "broken-access-control",
+      "owasp": [
+        "A01:2021",
+        "API1:2023"
+      ],
+      "proof": "any-account-withdraw",
+      "poc": "1. Authenticate and POST /api/transactions/withdraw with account_number=<any account>, amount, description, pin.\n2. The service does not verify the account belongs to the token's customer.\n3. Withdraw from any account number you discover, draining other customers."
+    },
+    {
+      "id": "LAB-08",
+      "title": "Legacy transfer parameter bypass",
+      "severity": "high",
+      "description": "The transfer endpoint still accepts legacy from/to fields alongside the modern from_account/to_account, and the legacy path skips the normal validation and authorization checks.",
+      "impact": "An attacker can craft transfers that bypass the authorization/validation applied to the modern fields, moving money between accounts.",
+      "remediation": "Remove or fully validate the legacy parameter path and route all transfers through the same authorization checks.",
+      "method": "POST",
+      "endpoint": "/api/transactions/transfer",
+      "port": 443,
+      "vuln_type": "legacy-bypass",
+      "owasp": [
+        "A04:2021",
+        "API6:2023"
+      ],
+      "proof": "legacy-from-to-description",
+      "poc": "1. POST /api/transactions/transfer with the legacy fields from (customer id) and to (customer id) instead of from_account/to_account.\n2. The legacy path bypasses account-ownership validation.\n3. Transfer funds out of a victim's account using their customer id."
+    },
+    {
+      "id": "LAB-09",
+      "title": "Hidden no-MFA token endpoint",
+      "severity": "high",
+      "description": "The hidden POST /app/api/internal/grant-token endpoint issues a fully-verified session token from valid bank credentials without any TOTP/MFA step, minting tokens with mfaVerified: true unconditionally and with no rate limiting.",
+      "impact": "Anyone holding a valid bank credential can mint an authenticated session that bypasses MFA entirely and use it on all authenticated endpoints.",
+      "remediation": "Remove or gate the legacy grant-token path behind the full login + MFA flow and add rate limiting / ACLs.",
+      "method": "POST",
+      "endpoint": "/app/api/internal/grant-token",
+      "port": 443,
+      "vuln_type": "mfa-bypass",
+      "owasp": [
+        "A07:2021",
+        "API2:2023"
+      ],
+      "proof": "token-no-mfa",
+      "poc": "1. POST /app/api/internal/grant-token with shared bank credentials (phone + password).\n2. The endpoint returns a valid accessToken WITHOUT any TOTP/MFA step.\n3. Use that token on protected game endpoints to bypass MFA entirely."
+    },
+    {
+      "id": "LAB-10",
+      "title": "Reward-profile IDOR → victim TOTP seed leak",
+      "severity": "high",
+      "description": "GET /app/api/reward-profile/{uuid} never compares the JWT's subject against the requested customerUuid, so any authenticated customer can read any other customer's profile including their mfaSeed (TOTP secret).",
+      "impact": "An attacker with a valid session of their own can read a victim's TOTP seed and mint their MFA codes or take over the account.",
+      "remediation": "Enforce that the path UUID matches the authenticated JWT subject server-side before returning the profile.",
+      "method": "GET",
+      "endpoint": "/app/api/reward-profile/{uuid}",
+      "port": 443,
+      "vuln_type": "idor",
+      "owasp": [
+        "A01:2021",
+        "API1:2023"
+      ],
+      "proof": "victim-mfa-seed",
+      "poc": "1. Authenticate to the game app, then GET /app/api/reward-profile/{customerUuid} with another customer's UUID.\n2. The response includes that victim's mfaSeed (base32 TOTP secret).\n3. Use the seed to generate valid TOTP codes and take over the victim's MFA."
+    },
+    {
+      "id": "LAB-11",
+      "title": "Actuator env exposes secret keys",
+      "severity": "high",
+      "description": "The Spring actuator /app/api/actuator/env endpoint is reachable unauthenticated and discloses the names and origins of DB_PASSWORD, JWT_SECRET and INTERNAL_API_KEY.",
+      "impact": "An attacker learns the application's internal configuration and secret inventory, which combined with the heapdump yields the plaintext values.",
+      "remediation": "Disable actuator endpoints (or gate them behind strong auth) and strip sensitive property names from the env view.",
+      "method": "GET",
+      "endpoint": "/app/api/actuator/env",
+      "port": 443,
+      "vuln_type": "sensitive-data-exposure",
+      "owasp": [
+        "A05:2021",
+        "API8:2023"
+      ],
+      "proof": "db-password-jwt-secret",
+      "poc": "1. GET /app/api/actuator/env (unauthenticated).\n2. The response exposes DB_PASSWORD, JWT_SECRET, INTERNAL_API_KEY, and other configuration values.\n3. Use the leaked secrets to forge tokens or connect directly to backend services."
+    },
+    {
+      "id": "LAB-12",
+      "title": "Actuator heapdump leaks plaintext secrets",
+      "severity": "high",
+      "description": "GET /app/api/actuator/heapdump is reachable unauthenticated and returns a full JVM heap dump; running strings on it recovers the plaintext JWT secret and internal API key defaults.",
+      "impact": "An unauthenticated attacker can recover live secrets from process memory and forge JWTs or call internal APIs.",
+      "remediation": "Disable the heapdump endpoint (or require strong auth) and keep secrets out of process memory where possible.",
+      "method": "GET",
+      "endpoint": "/app/api/actuator/heapdump",
+      "port": 443,
+      "vuln_type": "sensitive-data-exposure",
+      "owasp": [
+        "A05:2021",
+        "API8:2023"
+      ],
+      "proof": "heapdump-bytes",
+      "poc": "1. GET /app/api/actuator/heapdump (unauthenticated).\n2. Download the heapdump and run strings / a heap analyzer over it.\n3. Plaintext secrets (DB password, JWT secret, API keys) appear in the dump."
+    },
+    {
+      "id": "LAB-13",
+      "title": "Lucky wheel outcome is client-controlled",
+      "severity": "high",
+      "description": "POST /app/api/game/wheel/spin trusts a client-supplied outcome (e.g. {\"outcome\":\"JACKPOT\"}) instead of deriving it server-side, crediting points without any RNG validation.",
+      "impact": "An attacker can forge jackpots to accumulate unlimited points, which convert to real money via the redemption flow.",
+      "remediation": "Compute and validate the spin outcome server-side; never trust a client-supplied outcome.",
+      "method": "POST",
+      "endpoint": "/app/api/game/wheel/spin",
+      "port": 443,
+      "vuln_type": "business-logic-flaw",
+      "owasp": [
+        "A04:2021",
+        "API6:2023"
+      ],
+      "proof": "forged-outcome",
+      "poc": "1. Authenticate, then POST /app/api/game/wheel/spin with {\"outcome\":\"JACKPOT\"}.\n2. The server trusts the client-supplied outcome and credits the jackpot.\n3. Repeat to farm unlimited points (which you can redeem for money)."
+    },
+    {
+      "id": "LAB-14",
+      "title": "Points→money redemption deposit to any account",
+      "severity": "high",
+      "description": "The rewards redemption path makes an internal account-deposit call that can target any account_number without ownership verification.",
+      "impact": "An attacker can deposit redeemed rewards into arbitrary bank accounts and observe the internal deposit payload shape.",
+      "remediation": "Bind redemption deposits to the authenticated customer's account and validate ownership end-to-end.",
+      "method": "POST",
+      "endpoint": "/app/api/rewards/account-deposit",
+      "port": 443,
+      "vuln_type": "broken-access-control",
+      "owasp": [
+        "A01:2021",
+        "API1:2023"
+      ],
+      "proof": "deposit-any-account",
+      "poc": "1. Earn points, then POST /app/api/rewards/account-deposit with points and account_number=<any account>.\n2. The endpoint converts points to money and deposits to whatever account you name — no ownership check.\n3. Redeem to your own or any other account; the destination is client-controlled."
+    },
+    {
+      "id": "LAB-15",
+      "title": "Webhook SSRF → internal deposit",
+      "severity": "critical",
+      "description": "POST /app/api/rewards/share-webhook fetches an attacker-supplied webhook_url server-side with no allowlist, letting requests reach internal-only hosts such as transaction-service:8081.",
+      "impact": "An attacker reaches the internal no-auth deposit endpoint and deposits funds into arbitrary bank accounts (verified money movement).",
+      "remediation": "Restrict webhook URLs to an allowlist of external hosts and block RFC1918 / link-local / internal hostnames.",
+      "method": "POST",
+      "endpoint": "/app/api/rewards/share-webhook",
+      "port": 443,
+      "vuln_type": "ssrf",
+      "owasp": [
+        "A10:2021",
+        "API7:2023"
+      ],
+      "proof": "internal-deposit-reached",
+      "poc": "1. Authenticate, then POST /app/api/rewards/share-webhook with webhook_url=http://transaction-service:8081/api/transactions/deposit and a deposit body (account_number, amount).\n2. The server makes the request on your behalf (SSRF), reaching the internal deposit endpoint.\n3. Money is credited to the account you chose — a server-side request hit an internal-only endpoint."
+    },
+    {
+      "id": "LAB-16",
+      "title": "WordPress leaked .git",
+      "severity": "high",
+      "description": "The WordPress blog serves its .git directory unauthenticated (/blog/.git/HEAD returns 200), and the entire repository can be reconstructed over HTTP.",
+      "impact": "An attacker can download the full source tree, including the plugin with its hardcoded upload API key, enabling the webshell RCE chain.",
+      "remediation": "Block access to dotfiles/.git in nginx and remove the .git directory from the web root.",
+      "method": "GET",
+      "endpoint": "/blog/.git/HEAD",
+      "port": 443,
+      "vuln_type": "source-code-disclosure",
+      "owasp": [
+        "A05:2021"
+      ],
+      "proof": "git-ref-line",
+      "poc": "1. GET /blog/.git/HEAD — it returns 200 with ref: refs/heads/...\n2. The .git directory is served. Use git-dumper / a recursive download to reconstruct the whole repository.\n3. Recover the upload plugin source (including its hardcoded API key) and other source code."
+    },
+    {
+      "id": "LAB-17",
+      "title": "WordPress .git config disclosure",
+      "severity": "medium",
+      "description": "GET /blog/.git/config returns the repository config unauthenticated as part of the same leaked .git exposure.",
+      "impact": "An attacker maps the repository layout and continues dumping objects to recover the full plugin source and hardcoded secrets.",
+      "remediation": "Block dotfile/.git access at the web server and remove the .git directory from the web root.",
+      "method": "GET",
+      "endpoint": "/blog/.git/config",
+      "port": 443,
+      "vuln_type": "source-code-disclosure",
+      "owasp": [
+        "A05:2021"
+      ],
+      "proof": "git-config-body",
+      "poc": "1. GET /blog/.git/config — it returns the git config (remote URL, branches).\n2. Combined with the exposed .git objects, an attacker reconstructs the full source tree.\n3. The recovered source leaks secrets and enables the RCE chain."
+    },
+    {
+      "id": "LAB-18",
+      "title": "WordPress plugin arbitrary file upload (webshell → RCE)",
+      "severity": "critical",
+      "description": "The bank-media-uploader plugin endpoint accepts a .php payload guarded only by a hardcoded API key (recoverable from the leaked .git), executing the uploaded shell.",
+      "impact": "An attacker achieves full remote code execution on the blog container (id as www-data) and reads user.txt, compromising the host.",
+      "remediation": "Enforce server-side extension/content validation, rotate the API key, and never allow executable file uploads.",
+      "method": "POST",
+      "endpoint": "/blog/wp-content/plugins/bank-media-uploader/upload.php",
+      "port": 443,
+      "vuln_type": "unrestricted-upload",
+      "owasp": [
+        "A04:2021"
+      ],
+      "proof": "webshell-user-txt",
+      "poc": "1. Find the plugin's hardcoded API key in the leaked source (LAB-16).\n2. POST a .php webshell to /blog/wp-content/plugins/bank-media-uploader/upload.php with the X-API-Key header.\n3. Access the uploaded .php file to execute commands; read user.txt."
+    },
+    {
+      "id": "LAB-19",
+      "title": "WordPress user enumeration via REST API",
+      "severity": "medium",
+      "description": "GET /blog/wp-json/wp/v2/users returns the WordPress user list unauthenticated, exposing usernames.",
+      "impact": "An attacker harvests valid usernames for targeted password attacks, feeding the weak-credentials login chain.",
+      "remediation": "Restrict the users REST route to authenticated users and avoid exposing usernames publicly.",
+      "method": "GET",
+      "endpoint": "/blog/wp-json/wp/v2/users",
+      "port": 443,
+      "vuln_type": "user-enumeration",
+      "owasp": [
+        "A07:2021"
+      ],
+      "proof": "user-list",
+      "poc": "1. GET /blog/wp-json/wp/v2/users (unauthenticated).\n2. The response lists usernames and user IDs.\n3. Use the usernames for brute-force login or targeted attacks on wp-login.php."
+    },
+    {
+      "id": "LAB-20",
+      "title": "WordPress XML-RPC enabled",
+      "severity": "low",
+      "description": "POST /blog/xmlrpc.php is reachable and responds to system.listMethods, exposing the XML-RPC interface.",
+      "impact": "An attacker can use XML-RPC for brute-force amplification (system.multicall), pingback SSRF, or method abuse.",
+      "remediation": "Disable XML-RPC unless required; otherwise restrict methods and block system.multicall.",
+      "method": "POST",
+      "endpoint": "/blog/xmlrpc.php",
+      "port": 443,
+      "vuln_type": "xml-rpc-abuse",
+      "owasp": [
+        "A05:2021"
+      ],
+      "proof": "method-list",
+      "poc": "1. POST /blog/xmlrpc.php with system.listMethods (or a pingback.ping call).\n2. The endpoint is enabled and responds with the method list.\n3. Use XML-RPC amplification (pingback) for SSRF/DoS or brute-force via system.multicall."
+    },
+    {
+      "id": "LAB-21",
+      "title": "WordPress admin credentials baked into env",
+      "severity": "medium",
+      "description": "WordPress admin credentials (admin / hardcoded password) are stored in environment/compose configuration and wp-login.php is reachable via the blog proxy.",
+      "impact": "An attacker who recovers the baked-in credentials logs in as WordPress admin and gains full blog control, usable with the upload RCE.",
+      "remediation": "Use strong unique credentials, rotate them, and never hardcode secrets in configuration/environment.",
+      "method": "POST",
+      "endpoint": "/blog/wp-login.php",
+      "port": 443,
+      "vuln_type": "weak-credentials",
+      "owasp": [
+        "A07:2021"
+      ],
+      "proof": "admin-session",
+      "poc": "1. The WordPress admin credentials (admin / the env password) are exposed in the docker-compose.yml environment.\n2. Log in at /blog/wp-login.php with those credentials.\n3. From wp-admin you can edit themes/plugins to achieve code execution."
+    },
+    {
+      "id": "LAB-22",
+      "title": "Open SOCKS4 proxy on :8000",
+      "severity": "low",
+      "description": "A SOCKS4 proxy is bound on TCP :8000 with no authentication, acting as an open proxy.",
+      "impact": "An attacker can route arbitrary traffic through the proxy to anonymize attacks and pivot toward internal hosts.",
+      "remediation": "Restrict the proxy to trusted clients / internal use, require authentication, or remove it.",
+      "method": "TCP",
+      "endpoint": "socks4://:8000",
+      "port": 8000,
+      "vuln_type": "open-proxy",
+      "owasp": [
+        "A05:2021"
+      ],
+      "proof": "banner",
+      "poc": "1. Connect to the host's port 8000 with a SOCKS4 client (proxychains, curl --socks4).\n2. The proxy accepts connections and relays traffic without authentication.\n3. Route traffic through the open proxy to mask origin or reach internal targets."
+    },
+    {
+      "id": "LAB-23",
+      "title": "db-admin panel exposed with weak credentials",
+      "severity": "medium",
+      "description": "The database admin web panel lives under an obfuscated path, is reachable unauthenticated, and accepts a hardcoded username + SHA1 password recoverable from source.",
+      "impact": "An attacker logs in as db-admin and gets direct SQL access over all schemas.",
+      "remediation": "Remove or strongly authenticate the admin panel, rotate credentials, and use proper password hashing.",
+      "method": "POST",
+      "endpoint": "/TtFkwWSGlzyMrua/api/login",
+      "port": 443,
+      "vuln_type": "weak-credentials",
+      "owasp": [
+        "A07:2021",
+        "API2:2023"
+      ],
+      "proof": "admin-token",
+      "poc": "1. GET /TtFkwWSGlzyMrua/ — the db-admin web panel is reachable.\n2. POST /TtFkwWSGlzyMrua/api/login with the weak credentials (username db-admin + the SHA1-crackable password).\n3. Once in, run arbitrary SQL against all bank schemas."
+    },
+    {
+      "id": "LAB-24",
+      "title": "Login endpoint with no rate limiting",
+      "severity": "medium",
+      "description": "POST /api/auth/login has no rate limiting or lockout, allowing unlimited password attempts (an enabler for the brute-force chains).",
+      "impact": "An attacker can brute-force credentials at full speed, unlocking the weak-credentials and MFA-bypass chains.",
+      "remediation": "Add rate limiting, account lockout/backoff and MFA on the login endpoint.",
+      "method": "POST",
+      "endpoint": "/api/auth/login",
+      "port": 443,
+      "vuln_type": "no-rate-limit",
+      "owasp": [
+        "A07:2021",
+        "API4:2023"
+      ],
+      "proof": "enabler",
+      "poc": "1. POST /api/auth/login repeatedly with wrong passwords.\n2. There is no lockout or rate limit — unlimited attempts.\n3. Brute-force user passwords until a valid one is found."
+    },
+    {
+      "id": "LAB-25",
+      "title": "Weak password policy on set-password",
+      "severity": "low",
+      "description": "POST /api/auth/set-password accepts weak passwords with no complexity or length enforcement, letting users (or attackers) set guessable credentials.",
+      "impact": "Weak credentials become the entry point for brute-force and account-takeover chains.",
+      "remediation": "Enforce a strong password policy and validate PIN/password complexity server-side.",
+      "method": "POST",
+      "endpoint": "/api/auth/set-password",
+      "port": 443,
+      "vuln_type": "weak-password-policy",
+      "owasp": [
+        "A07:2021",
+        "API2:2023"
+      ],
+      "proof": "enabler",
+      "poc": "1. POST /api/auth/set-password with a very weak password (e.g. 'a').\n2. The endpoint accepts it — no minimum-length or complexity check.\n3. Weak passwords make account takeover trivial once a phone number is known."
+    },
+    {
+      "id": "LAB-26",
+      "title": "Customer-service dashboard JWT reuse (role bypass)",
+      "severity": "high",
+      "description": "The customer-service dashboard endpoints accept a JWT without binding audience/role to the requested customerId, letting a customer-service (or lower-privilege) token read any customer's transactions.",
+      "impact": "An attacker holding a customer-service token can read any customer's transaction history and audit data across roles.",
+      "remediation": "Validate the token's audience/role server-side and scope queries to the customerId the token was issued for.",
+      "method": "GET",
+      "endpoint": "/api/cs/dashboard/customers/:customerId/transactions",
+      "port": 443,
+      "vuln_type": "broken-access-control",
+      "owasp": [
+        "A01:2021",
+        "API5:2023"
+      ],
+      "proof": "jwt-reuse-role",
+      "poc": "1. Obtain a valid customer JWT (shared secret with customer-service).\n2. GET /api/cs/dashboard/customers/:customerId/transactions with a token whose role/claims you've modified.\n3. The dashboard trusts the JWT role — access any customer's data with an escalated token."
+    },
+    {
+      "id": "LAB-27",
+      "title": "Error-based SQL injection on publisher diagnostics endpoint",
+      "severity": "high",
+      "description": "POST /wp-content/plugins/bank-media-uploader/diagnostics.php concatenates the unsanitized `id` parameter into a SQL query and surfaces MySQL errors verbatim, enabling error-based blind SQL injection that dumps the staff_accounts table.",
+      "impact": "An attacker can dump the staff_accounts credential (the WordPress admin hash for publisher.bot) via EXTRACTVALUE error messages, crack it, and log into wp-admin as the sole administrator — full blog takeover.",
+      "remediation": "Use parameterized queries and never surface raw database errors to clients; scope the diagnostics tool behind authentication.",
+      "method": "GET",
+      "endpoint": "/blog/wp-content/plugins/bank-media-uploader/diagnostics.php?id={payload}",
+      "port": 443,
+      "vuln_type": "sql-injection",
+      "owasp": [
+        "A03:2021",
+        "API8:2023"
+      ],
+      "proof": "error-based-sqli-dump",
+      "poc": "1. GET /blog/wp-content/plugins/bank-media-uploader/diagnostics.php?id=1 AND EXTRACTVALUE(1,CONCAT(0x7e,(SELECT password_hash FROM staff_accounts LIMIT 1),0x7e))\n2. The response leaks the MySQL error containing the hash: XPATH syntax error: '~$wp$2y$10$...'.\n3. Dump username publisher.bot, crack the hash (admin123, hashcat mode 3200 / rockyou), then log into /blog/wp-login.php as publisher.bot."
+    }
+  ]
+}

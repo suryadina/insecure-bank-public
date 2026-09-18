@@ -1,0 +1,333 @@
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --card-alt: #172033;
+  --border: #334155;
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --danger: #f87171;
+  --success: #4ade80;
+  --gold: #facc15;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(circle at 20% 0%, rgba(99, 102, 241, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1), transparent 45%);
+  background-attachment: fixed;
+  color: var(--text);
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* ---------- Brand header ---------- */
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 28px 24px 4px;
+}
+
+.brand-header h1 {
+  font-size: 1.3rem;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.brand-header .brand-sub {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* ---------- Cards / page layout ---------- */
+.page {
+  max-width: 480px;
+  margin: 24px auto;
+  padding: 28px;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(148, 163, 184, 0.06);
+}
+
+.card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.card-heading .icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.card-heading h1,
+.card-heading h2 {
+  margin: 0;
+}
+
+.subtext {
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin: 16px 0;
+}
+
+.stat-card .icon-badge {
+  background: linear-gradient(135deg, #22d3ee, #6366f1);
+}
+
+.stat-card .stat-label {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stat-card .stat-value {
+  margin: 2px 0 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+h1, h2 {
+  margin-top: 0;
+}
+
+input, button {
+  font-size: 1rem;
+  padding: 11px 12px;
+  margin: 6px 0;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-alt);
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.otp-input {
+  letter-spacing: 0.6em;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s ease, transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  background: #475569;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text);
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 10px 24px 0;
+}
+
+nav a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+nav a:hover,
+nav a.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #c7d2fe;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.success {
+  color: var(--success);
+}
+
+.mono {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  word-break: break-all;
+  background: var(--bg);
+  padding: 8px;
+  border-radius: 6px;
+  display: block;
+}
+
+/* ---------- Lucky wheel ---------- */
+.wheel-wrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 24px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.wheel-svg {
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px var(--card-alt), 0 0 30px rgba(99, 102, 241, 0.4);
+  transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+}
+
+.wheel-outcome {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.wheel-outcome-badge {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold), #f59e0b);
+  color: #1c1305;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  animation: pop-in 0.4s ease;
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.35);
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes spin-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 6px var(--card-alt), 0 0 30px rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px var(--card-alt), 0 0 55px rgba(99, 102, 241, 0.8);
+  }
+}
+
+.wheel-svg.is-spinning {
+  animation: spin-glow 0.6s ease-in-out infinite;
+}
+
+.sparkle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sparkle span {
+  position: absolute;
+  font-size: 1.4rem;
+  animation: sparkle-float 1.2s ease-out forwards;
+}
+
+@keyframes sparkle-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(1.2);
+  }
+}

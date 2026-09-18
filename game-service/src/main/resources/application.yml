@@ -1,0 +1,76 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: game-service
+  # Primary datasource: game-service's OWN database/schema for MFA state.
+  # Intentionally SEPARATE from the bank's customer/auth tables (see `bank.datasource` below).
+  datasource:
+    url: ${GAME_DB_URI:jdbc:postgresql://postgresql:5432/insecure_bank?currentSchema=game_mfa&connectTimeout=10&socketTimeout=30&loginTimeout=10}
+    username: bankuser
+    password: ${DB_PASSWORD:yxjccsKBzvr8Ywh87OZuVXwnyZfB}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 60000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        globally_quoted_identifiers: false
+    open-in-view: false
+  sql:
+    init:
+      continue-on-error: false
+      platform: postgresql
+
+# Secondary, read-only-in-practice connection used ONLY to validate shared bank
+# credentials against the bank's existing customers table (auth_db schema).
+# This is a separate DataSource from the primary one above so the game-service's
+# own tables never live alongside the bank's customer data.
+bank:
+  datasource:
+    url: ${BANK_DB_URI:jdbc:postgresql://postgresql:5432/insecure_bank?currentSchema=auth_db&connectTimeout=10&socketTimeout=30&loginTimeout=10}
+    username: bankuser
+    password: ${DB_PASSWORD:yxjccsKBzvr8Ywh87OZuVXwnyZfB}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 60000
+
+logging:
+  level:
+    com.insecurebank: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,env,heapdump,info
+  endpoint:
+    health:
+      show-details: always
+
+jwt:
+  secret: "${JWT_SECRET:GameServiceVulnerableSecretKeyForWorkshop123LongEnoughForHS512Alg}"
+  session-expiration: 600000
+  access-expiration: 86400000
+
+# Shared internal-service key used for trusted service-to-service calls
+# (same key as auth-service's SERVICE_API_KEY). Never validated on any
+# public-facing endpoint -- intended for internal callers only.
+internal:
+  api-key: "${INTERNAL_API_KEY:InternalServiceKey123VulnerableForWorkshop}"
+
+# Bank's transaction-service, called internally by the rewards redemption
+# flow to actually deposit money (POST /api/transactions/deposit, no auth
+# required per the bank's own existing design).
+transaction-service:
+  base-url: "${TRANSACTION_SERVICE_BASE_URL:http://transaction-service:8081}"

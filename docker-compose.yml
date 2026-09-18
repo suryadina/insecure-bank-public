@@ -1,0 +1,224 @@
+services:
+  postgresql:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      - POSTGRES_DB=insecure_bank
+      - POSTGRES_USER=bankuser
+      - POSTGRES_PASSWORD=yxjccsKBzvr8Ywh87OZuVXwnyZfB
+    command: ["postgres", "-c", "max_connections=300", "-c", "shared_buffers=512MB", "-c", "effective_cache_size=2GB"]
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - insecure-bank-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankuser -d insecure_bank"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    mem_limit: 768m
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVICE_API_KEY=InternalServiceKey123VulnerableForWorkshop
+    networks:
+      - insecure-bank-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  transaction-service:
+    build:
+      context: ./transaction-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8081
+      - SERVICE_API_KEY=InternalServiceKey123VulnerableForWorkshop
+    networks:
+      - insecure-bank-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  customer-service:
+    build:
+      context: ./customer-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8083
+    networks:
+      - insecure-bank-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  api-gateway:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - insecure-bank-network
+      - wordpress-net
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      transaction-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+      db-admin:
+        condition: service_started
+      frontend-react:
+        condition: service_started
+      wordpress-blog:
+        condition: service_started
+
+  db-admin:
+    build:
+      context: ./db-admin
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - DB_PASSWORD=yxjccsKBzvr8Ywh87OZuVXwnyZfB
+    networks:
+      - insecure-bank-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  frontend-react:
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - insecure-bank-network
+    depends_on:
+      - auth-service
+      - transaction-service
+      - customer-service
+
+  game-service:
+    build:
+      context: ./game-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    mem_limit: 1.5g
+    environment:
+      - DB_PASSWORD=yxjccsKBzvr8Ywh87OZuVXwnyZfB
+      - JWT_SECRET=GameServiceVulnerableSecretKeyForWorkshop123LongEnoughForHS512Alg
+      - INTERNAL_API_KEY=InternalServiceKey123VulnerableForWorkshop
+      - GAME_DB_URI=jdbc:postgresql://postgresql:5432/insecure_bank?currentSchema=game_mfa&connectTimeout=10&socketTimeout=30&loginTimeout=10
+      - BANK_DB_URI=jdbc:postgresql://postgresql:5432/insecure_bank?currentSchema=auth_db&connectTimeout=10&socketTimeout=30&loginTimeout=10
+      - TRANSACTION_SERVICE_BASE_URL=http://transaction-service:8081
+    networks:
+      - insecure-bank-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  game-frontend:
+    build:
+      context: ./game-frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - insecure-bank-network
+    depends_on:
+      - game-service
+
+  wordpress-db:
+    image: mysql:8.0
+    restart: unless-stopped
+    mem_limit: 1.5g
+    command: ["mysqld", "--innodb-buffer-pool-size=1G", "--max-connections=300", "--wait-timeout=60", "--interactive-timeout=60"]
+    environment:
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=WordpressPassword123
+      - MYSQL_ROOT_PASSWORD=WordpressRootPassword123
+    volumes:
+      - wordpress-db-data:/var/lib/mysql
+    networks:
+      - wordpress-net
+
+  wordpress-blog:
+    build:
+      context: ./wordpress-blog
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Isolated from the bank/game services: wordpress-blog + wordpress-db live on
+    # their own network (wordpress-net). Only api-gateway joins it (to proxy /blog/).
+    # Even with the intentional RCE (file-upload -> webshell) an attacker's shell
+    # cannot reach postgresql/auth-service/transaction-service/db-admin/game-service.
+    user: "33:33"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+      - /run:rw,noexec,nosuid
+      - /run/lock:rw,noexec,nosuid
+      - /var/log/apache2:rw,noexec,nosuid
+      - /var/lib/php/sessions:rw,noexec,nosuid
+    environment:
+      - WORDPRESS_DB_HOST=wordpress-db
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=WordpressPassword123
+      - WORDPRESS_DB_NAME=wordpress
+      # WORDPRESS_URL: full base URL the blog is reachable at, e.g. http://localhost/blog.
+      # Set it in a repo-root .env file (docker compose auto-loads it) so links/permalinks
+      # resolve correctly from other devices on the LAN instead of localhost.
+      - WORDPRESS_SITE_URL=${WORDPRESS_URL:-http://localhost/blog}
+      - WORDPRESS_HOME=${WORDPRESS_URL:-http://localhost/blog}
+      - WORDPRESS_ADMIN_USER=admin
+      - WORDPRESS_ADMIN_PASSWORD=Ay5fMo2iw0F1V3bkWe3K17HY9AoO
+      - WORDPRESS_ADMIN_EMAIL=admin@insecurebank.local
+      - WP_CLI_CACHE_DIR=/tmp/.wp-cli-cache
+      # Apache runs as www-data (uid 33) with a read-only rootfs; point its
+      # runtime dirs at the writable /tmp tmpfs instead of /run (root-owned).
+      - APACHE_RUN_DIR=/tmp/apache2-run
+      - APACHE_LOCK_DIR=/tmp/apache2-lock
+      - APACHE_PID_FILE=/tmp/apache2-run/apache2.pid
+    volumes:
+      - wordpress-blog-data:/var/www/html
+      - ./wordpress-blog/mpm-prefork.conf:/etc/apache2/mods-available/mpm_prefork.conf:ro
+    networks:
+      - wordpress-net
+    depends_on:
+      - wordpress-db
+
+volumes:
+  postgresql-data:
+  wordpress-db-data:
+  wordpress-blog-data:
+
+networks:
+  insecure-bank-network:
+    driver: bridge
+  wordpress-net:
+    driver: bridge

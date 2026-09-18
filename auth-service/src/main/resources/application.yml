@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://postgresql:5432/insecure_bank?currentSchema=auth_db&connectTimeout=10&socketTimeout=30&loginTimeout=10
+    username: bankuser
+    password: yxjccsKBzvr8Ywh87OZuVXwnyZfB
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 40
+      minimum-idle: 10
+      connection-timeout: 60000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+      initialization-fail-timeout: 60000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        globally_quoted_identifiers: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+  sql:
+    init:
+      continue-on-error: false
+      platform: postgresql
+
+logging:
+  level:
+    com.insecurebank: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+    
+jwt:
+  secret: "VulnerableSecretKeyForWorkshop123ThisIsALongEnoughKeyForHS512Algorithm1234567890"
+  expiration: 86400000
+
+otp:
+  expiration: 300000

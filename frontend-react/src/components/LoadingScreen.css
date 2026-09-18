@@ -1,0 +1,183 @@
+.fake-hacker-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #000000 100%);
+  color: #ff0000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+.fake-hacker-content {
+  text-align: center;
+  z-index: 10;
+  max-width: 600px;
+  padding: 2rem;
+}
+
+.fake-message-1 {
+  animation: fake-fadeIn 1s ease-in;
+}
+
+.fake-message-2 {
+  animation: fake-slideIn 0.5s ease-out;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 2px solid #ff0000;
+  border-radius: 10px;
+  background: rgba(255, 0, 0, 0.1);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+}
+
+.fake-title {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 20px #ff0000;
+  animation: fake-glow 2s ease-in-out infinite alternate;
+}
+
+.fake-subtitle {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: #ff4444;
+}
+
+.fake-alert {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #ffff00;
+  text-shadow: 0 0 15px #ffff00;
+  animation: fake-blink 1s infinite;
+}
+
+.fake-warning {
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+  color: #ff0000;
+}
+
+.fake-threat {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  color: #ff6666;
+}
+
+.fake-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fake-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid #333;
+  border-top: 3px solid #ff0000;
+  border-radius: 50%;
+  animation: fake-spin 1s linear infinite;
+}
+
+.fake-countdown p {
+  margin-bottom: 1rem;
+  color: #ffaa00;
+}
+
+.fake-progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #333;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #ff0000;
+}
+
+.fake-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff0000 0%, #ffff00 50%, #ff0000 100%);
+  animation: fake-progress 10s linear infinite;
+  border-radius: 10px;
+}
+
+.fake-background-effects {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.fake-matrix-rain::before {
+  content: "01010101 HACKED 10101010 VIRUS DETECTED 01110110 SYSTEM COMPROMISED 11001100";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: #00ff00;
+  font-size: 0.8rem;
+  opacity: 0.1;
+  white-space: pre-wrap;
+  animation: fake-matrix 20s linear infinite;
+  letter-spacing: 2px;
+  line-height: 1.5;
+}
+
+/* Animations */
+@keyframes fake-fadeIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fake-slideIn {
+  from { opacity: 0; transform: translateX(-100px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fake-glow {
+  from { text-shadow: 0 0 20px #ff0000; }
+  to { text-shadow: 0 0 30px #ff0000, 0 0 40px #ff0000; }
+}
+
+@keyframes fake-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+@keyframes fake-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fake-progress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+@keyframes fake-matrix {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .fake-title {
+    font-size: 2.5rem;
+  }
+  
+  .fake-subtitle {
+    font-size: 1.2rem;
+  }
+  
+  .fake-alert {
+    font-size: 2rem;
+  }
+  
+  .fake-hacker-content {
+    padding: 1rem;
+  }
+}
